@@ -1,0 +1,1807 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="author" content="anko_monn">
+<meta name="description" content="「一撃落札」の展示収益の合計が最大になる配置を、アイテムの形と所持数から求める、NTEの非公式ファンツールです。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="一撃落札の展示収益 最大化ツール">
+<meta property="og:description" content="「一撃落札」の展示収益の合計が最大になる配置を、アイテムの形と所持数から求める、NTEの非公式ファンツールです。">
+<meta property="og:url" content="https://anko-monn.github.io/nte-ichigeki-rakusatsu-optimizer/">
+<meta property="og:image" content="https://anko-monn.github.io/nte-ichigeki-rakusatsu-optimizer/img/ogp.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<title>一撃落札の展示収益 最大化ツール</title>
+<style>
+  :root {
+    --bg: #eef2f4;
+    --surface: #fbfcfc;
+    --ink: #1f2b33;
+    --muted: #5d6b75;
+    --line: #cfd8de;
+    --accent: #0e7490;
+    --accent-ink: #ffffff;
+    --warn: #b4442f;
+    --ok: #1d7a4f;
+    --empty: #dfe6ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141b20;
+      --surface: #1b242a;
+      --ink: #e4eaee;
+      --muted: #93a2ad;
+      --line: #2f3d46;
+      --accent: #4cc3dc;
+      --accent-ink: #0b1a20;
+      --warn: #ff8a73;
+      --ok: #5fd39a;
+      --empty: #27343c;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .01em; }
+
+  /* ヘッダー: 写真は飾りで、なくても同じように使える。写真がないときは、盤面のマス目をイメージした背景になる */
+  .hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    height: 132px;
+    margin-bottom: 16px;
+    padding: 16px 18px;
+    overflow: hidden;
+    border-radius: 12px;
+    background-color: #17191c;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, .09) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, .09) 1px, transparent 1px),
+      linear-gradient(135deg, #5a2226 0%, #1b2024 72%);
+    background-size: 28px 28px, 28px 28px, 100% 100%;
+  }
+  .hero picture, .hero img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  .hero img { object-fit: cover; }
+  .hero.has-photo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      linear-gradient(0deg, rgba(8, 10, 12, .55) 0%, rgba(8, 10, 12, 0) 60%),
+      linear-gradient(90deg, rgba(8, 10, 12, .84) 0%, rgba(8, 10, 12, .56) 48%, rgba(8, 10, 12, .12) 100%);
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    height: 2px;
+    background: linear-gradient(90deg, #c9a45a 0%, rgba(201, 164, 90, 0) 70%);
+  }
+  .hero h1 .nb { display: inline-block; }
+  .hero h1 {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    color: #fff;
+    font-size: 21px;
+    line-height: 1.35;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, .65);
+  }
+  @media (min-width: 641px) {
+    .hero { height: 200px; padding: 22px 26px; }
+    .hero h1 { font-size: 30px; }
+  }
+  h2 { font-size: 16px; margin: 32px 0 10px; }
+  .lead { margin: 0 0 22px; color: var(--muted); }
+
+  input[type="text"], textarea {
+    font: inherit;
+    color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 9px;
+    width: 100%;
+  }
+  input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .btn {
+    font: inherit;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.primary:disabled { opacity: .55; cursor: default; }
+  .btn.quiet { padding: 4px 8px; font-size: 13px; color: var(--muted); }
+
+  /* 計算結果 */
+  .result {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .result .left { flex: 2 1 420px; min-width: 0; }
+  .result .right { flex: 1 1 300px; min-width: 0; }
+  .total-label { font-size: 13px; color: var(--muted); }
+  .total { font-size: 40px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .status { margin: 4px 0 0; font-size: 14px; }
+  .status.ok { color: var(--ok); }
+  .status.warn { color: var(--warn); }
+  .status.run { color: var(--accent); }
+  .status.idle { color: var(--muted); }
+  .run-actions { margin: 8px 0 4px; }
+  .usage { display: flex; gap: 24px; margin: 10px 0 14px; padding: 0; }
+  .usage div { margin: 0; }
+  .usage dt { font-size: 13px; color: var(--muted); }
+  .usage dd { margin: 0; font-size: 18px; font-variant-numeric: tabular-nums; }
+
+  .board { display: grid; gap: 2px; width: 100%; max-width: 640px; }
+  .cell { background: var(--empty); border-radius: 3px; }
+  .rect {
+    background-color: var(--c); /* アイテムごとの色(renderBoard で指定) */
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .4);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    padding: 1px 2px;
+    overflow-wrap: anywhere;
+    line-break: strict;
+    text-wrap: balance;
+  }
+  /* 画像があるアイテム。読み込み中(img-wait)は、画像の枠と同じ色の四角だけを出す。
+     文字の表示から画像に切り替わって見えないようにするため。読み込めなかったときだけ、色と名前の表示にする */
+  .rect.img-wait, .rect.has-img {
+    background-color: #7a0d29;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    box-shadow: none;
+    border-radius: 4px;
+  }
+  .namecell { display: flex; align-items: center; gap: 8px; }
+  .namecell input { flex: 1; min-width: 0; }
+  /* 表のアイコン。画像があるアイテムは画像、ないアイテムは、盤面と同じ色の四角に名前の1文字目を重ねる */
+  .ico {
+    flex: none; width: 32px; height: 32px; border-radius: 5px;
+    background-color: var(--c, var(--empty)); background-repeat: no-repeat; background-size: 400% 400%; /* img/icons.webp は4列×4行 */
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 15px; font-weight: 600; line-height: 1; overflow: hidden;
+  }
+  .ico[data-ico] { background-color: #692322; background-image: url("img/icons.webp"); font-size: 0; } /* 読み込み中は、アイコンの背景と同じ色 */
+  .no-img .ico[data-ico] { background-color: var(--c); background-image: none; font-size: 15px; } /* 画像を出さない環境では、色と1文字にする */
+  .ico.sm { width: 24px; height: 24px; font-size: 12px; }
+  .bd-name { display: flex; align-items: center; gap: 8px; }
+  .ico.sm[data-ico] { font-size: 0; }
+  .no-img .ico.sm[data-ico] { font-size: 12px; }
+  .board-caption { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .sel-info { min-height: 1.5em; margin: 6px 0 0; font-size: 14px; }
+  .rect { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .board.has-sel .rect:not(.sel) { opacity: .28; }
+  .rect.sel { outline: 2px solid #fff; outline-offset: -3px; }
+  #breakdown th, #breakdown td.num { white-space: nowrap; }
+  #breakdown tbody tr[data-id] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  #breakdown tbody tr.sel td { background: var(--empty); }
+  #breakdown tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  #breakdown tbody tr[data-id]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align: left; font-weight: 600; font-size: 13px; color: var(--muted); padding: 4px 6px; }
+  td { padding: 6px; border-top: 1px solid var(--line); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  th.num { text-align: right; }
+  tfoot td { font-weight: 700; }
+  .empty-msg { color: var(--muted); margin: 0; }
+
+  .notice { margin: 12px 0 0; color: var(--warn); font-size: 14px; }
+  .notice:empty { display: none; }
+  .note { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+  .note:empty { display: none; }
+  .stale { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* アイテムの表 */
+  /* アイテムの表の操作バー: 表をスクロールしている間も、画面の上に残る */
+  .sticky-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-bottom: 10px;
+    padding: 8px 0 6px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toolbar .push { margin-left: auto; }
+  .btn .sm { display: none; }
+  .tablewrap { overflow-x: auto; position: relative; }
+  table.items { min-width: 720px; }
+  table.items td { padding: 4px 6px; }
+  table.items input { padding: 5px 8px; }
+  .c-rev { width: 104px; }
+  .c-size { width: 66px; }
+  .c-cells { width: 74px; }
+  .c-eff { width: 80px; }
+  .c-owned { width: 100px; }
+  .c-del { width: 64px; }
+  td.auto { color: var(--muted); }
+  input[aria-invalid="true"] { border-color: var(--warn); }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+
+  details.fold { margin-top: 20px; }
+  details.fold summary { cursor: pointer; color: var(--accent); }
+  details.fold textarea { margin: 10px 0; font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 13px; }
+  .bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  #bulkMsg { min-height: 1.6em; }
+  details.fold textarea::placeholder { color: var(--muted); opacity: .55; }
+  .format { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 8px; padding: 0; }
+  .format span { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 1px 8px; font-size: 13px; }
+  ul.spec { margin: 0 0 4px; padding-left: 20px; }
+  ul.spec li { margin: 2px 0; }
+
+  /* とても狭い画面: 内訳の表の名前の欄を広く取る */
+  @media (max-width: 400px) {
+    #breakdown { font-size: 14px; }
+    #breakdown th, #breakdown td { padding-left: 4px; padding-right: 4px; }
+    #breakdown .ico.sm { width: 20px; height: 20px; }
+    .bd-name { gap: 6px; }
+  }
+
+  /* 狭い画面(スマホ): 表をやめて、1アイテムを1枚のカードとして表示する */
+  @media (max-width: 640px) {
+    .btn .lg { display: none; }
+    .btn .sm { display: inline; }
+    .toolbar { flex-wrap: nowrap; gap: 6px; }
+    .toolbar .btn { padding: 7px 10px; }
+    input[type="text"], textarea { font-size: 16px; } /* iPhoneで入力時に画面が拡大されるのを防ぐ */
+    .tablewrap { overflow-x: visible; }
+    table.items { min-width: 0; }
+    table.items thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    table.items, table.items tbody { display: block; }
+    table.items tr {
+      display: grid;
+      grid-template-columns: 1.2fr 1.3fr 0.8fr 0.8fr;
+      gap: 8px 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    table.items td { display: block; width: auto !important; min-width: 0; padding: 0; border: 0; }
+    table.items td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; color: var(--muted); }
+    table.items input { width: 100%; padding: 7px 9px; }
+    table.items td:nth-child(1) { grid-column: 1 / 4; grid-row: 1; }
+    table.items td:nth-child(8) { grid-column: 4; grid-row: 1; align-self: end; }
+    table.items td:nth-child(8)::before { content: none; }
+    table.items td:nth-child(8) .btn { width: 100%; padding: 8px 4px; }
+    table.items td:nth-child(2) { grid-column: 1; grid-row: 2; }
+    table.items td:nth-child(3) { grid-column: 2; grid-row: 2; }
+    table.items td:nth-child(4) { grid-column: 3; grid-row: 2; }
+    table.items td:nth-child(5) { grid-column: 4; grid-row: 2; }
+    table.items td.auto { grid-row: 3; text-align: left; font-size: 13px; }
+    table.items td.auto::before { display: inline; margin: 0 6px 0 0; }
+    table.items td:nth-child(6) { grid-column: 1 / 3; }
+    table.items td:nth-child(7) { grid-column: 3 / 5; }
+  }
+
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  footer p { margin: 4px 0; }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero" id="hero">
+    <h1><span class="nb">一撃落札の展示収益</span> <span class="nb">最大化ツール</span></h1>
+  </header>
+  <main>
+  <p class="lead">盤面にアイテムを並べたとき、展示収益の合計が最大になる配置を求めます。</p>
+
+  <section class="result" id="result" aria-labelledby="resultLabel">
+    <div class="left">
+      <div class="total-label" id="resultLabel">展示収益の合計</div>
+      <div class="total" id="total">0</div>
+      <p class="status" id="status" aria-live="polite"></p>
+      <div class="run-actions" id="runActions" hidden>
+        <button type="button" class="btn" id="stopBtn">中止</button>
+      </div>
+      <dl class="usage">
+        <div><dt>使用マス数</dt><dd id="usedCells">0</dd></div>
+        <div><dt>配置する個数</dt><dd id="usedItems">0</dd></div>
+      </dl>
+      <div class="board" id="board" role="img" aria-label="盤面の配置"></div>
+      <p class="sel-info" id="selInfo" aria-live="polite"></p>
+      <p class="board-caption" id="boardCaption"></p>
+    </div>
+    <div class="right">
+      <table id="breakdown">
+        <thead>
+          <tr><th>アイテム</th><th class="num">個数</th><th class="num">マス数</th><th class="num">展示収益</th></tr>
+        </thead>
+        <tbody id="breakdownBody"></tbody>
+        <tfoot id="breakdownFoot"></tfoot>
+      </table>
+      <p class="empty-msg" id="emptyMsg" hidden>下の表で、展示収益・縦・横・所持数が正しく入力されているか、確認してください。</p>
+    </div>
+  </section>
+  <p class="stale" id="stale" hidden>入力が変更されました。「計算する」を押すと、結果が更新されます。</p>
+  <p class="notice" id="notice" aria-live="polite"></p>
+  <p class="note" id="note"></p>
+
+  <section class="items-section" aria-labelledby="itemsHeading">
+  <h2 id="itemsHeading">アイテムの表</h2>
+  <div class="sticky-bar">
+    <div class="toolbar">
+      <button type="button" class="btn" id="addRow" aria-label="アイテムを追加"><span class="lg" aria-hidden="true">アイテムを追加</span><span class="sm" aria-hidden="true">追加</span></button>
+      <button type="button" class="btn" id="sortRows" aria-label="効率の高い順に並べる"><span class="lg" aria-hidden="true">効率の高い順に並べる</span><span class="sm" aria-hidden="true">効率順</span></button>
+      <button type="button" class="btn quiet" id="resetRows" aria-label="初期の表に戻す"><span class="lg" aria-hidden="true">初期の表に戻す</span><span class="sm" aria-hidden="true">初期化</span></button>
+      <button type="button" class="btn primary push" id="solveBtn">計算する</button>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table class="items">
+      <thead>
+        <tr>
+          <th scope="col">アイテム名</th>
+          <th scope="col" class="c-owned">所持数</th>
+          <th scope="col" class="c-rev">展示収益</th>
+          <th scope="col" class="c-size">縦</th>
+          <th scope="col" class="c-size">横</th>
+          <th scope="col" class="c-cells num">マス数</th>
+          <th scope="col" class="c-eff num">展示効率</th>
+          <th scope="col" class="c-del"><span class="sr-only">操作</span></th>
+        </tr>
+      </thead>
+      <tbody id="itemBody"></tbody>
+    </table>
+  </div>
+  <p class="hint">縦・横は、アイテムが盤面の縦方向・横方向に占めるマス数です。展示効率は、1マスあたりの展示収益です。</p>
+  </section>
+
+  <details class="fold">
+    <summary>表を一括で貼り付ける・書き出す</summary>
+    <p class="hint">1行に1アイテムで、列は次の順に並べます。表計算ソフト(ExcelやGoogleスプレッドシート)で範囲をコピーして貼り付けると、そのまま読み取れます。</p>
+    <p class="format"><span>アイテム名</span><span>展示収益</span><span>縦</span><span>横</span><span>所持数(省略可)</span></p>
+    <ul class="hint spec">
+      <li>区切りは<strong>タブ</strong>です。カンマ区切りも使えます。</li>
+      <li>1行目に見出しを付けると、列の順番は自由です。見出しがない場合は、上の順に読み取ります。</li>
+      <li>マス数と展示効率は自動で計算されるため、入力は不要です。</li>
+    </ul>
+    <textarea id="bulk" rows="8" spellcheck="false" aria-label="貼り付け用のテキスト"></textarea>
+    <div class="bulk-actions">
+      <button type="button" class="btn" id="bulkReplace">表を置き換える</button>
+      <button type="button" class="btn" id="bulkAppend">表の末尾に追加する</button>
+      <button type="button" class="btn" id="bulkExport">現在の表を書き出す</button>
+      <button type="button" class="btn quiet" id="bulkExample">入力例を入れる</button>
+    </div>
+    <p class="hint" id="bulkMsg" aria-live="polite">表を置き換えても、同じ名前のアイテムの所持数は引き継がれます。</p>
+  </details>
+
+  <details class="fold">
+    <summary>結果の見方</summary>
+    <ul class="hint spec">
+      <li>「最適です」と表示されたときは、この条件で、これより展示収益が高い配置はありません。</li>
+      <li>「最適との差は最大◯」の◯は、アイテムの形を無視して、マス数と個数だけで計算した最大値(上限)と、いま表示している配置との差です。本当の最適な配置は、いまより高いとしても、この差を超えません。</li>
+      <li>計算は、まずこの上限を求め、盤面に収まる組み合わせを探す方法です。上限に届いたとき、またはすべての候補を調べ終えたときに「最適」と表示します。<span class="js-time-limit"></span>秒以内に証明できないときは、見つかった最良の配置を表示します(最適とは限りません)。</li>
+    </ul>
+  </details>
+
+  </main>
+
+  <footer>
+    <p>NTE(Neverness to Everness)の非公式ファンツールです。ゲームの運営会社・開発元とは関係ありません。</p>
+    <p>入力した内容は、このブラウザの中だけに保存されます。サーバーには送信されません。</p>
+    <p>計算結果は、入力した値にもとづくもので、ゲーム内での結果を保証するものではありません。</p>
+    <p>このツールの不具合やご意見は、製作者のXアカウント <a href="https://x.com/anko_monn" target="_blank" rel="noopener noreferrer">@anko_monn</a> までご連絡ください。</p>
+  </footer>
+</div>
+
+<script>
+// ==== SOLVER START ====
+// 盤面にアイテム(長方形・回転なし)を置いて、展示収益の合計を最大にする。
+// 1) 形状を無視した上限を厳密に計算し、2) ビームサーチで良い配置を作り、
+// 3) 一部を外して置き直す探索(部分的な厳密探索)で改善する。
+// 単独で動くように、外部の変数は使わない(Web Workerにそのまま渡すため)。
+function runSolver(payload, report) {
+  const H = payload.h;
+  const W = payload.w;
+  const total = H * W;
+  const N = Math.min(payload.n, total);
+  const timeLimitMs = payload.timeLimitMs;
+  const t0 = Date.now();
+
+  // 同じ(収益, 縦, 横)のアイテムは1つにまとめて探索し、あとで元のアイテムへ振り分ける
+  const groupMap = new Map();
+  for (const it of payload.items) {
+    const key = it.rev + '|' + it.h + '|' + it.w;
+    let g = groupMap.get(key);
+    if (!g) {
+      g = { rev: it.rev, h: it.h, w: it.w, a: it.h * it.w, members: [], sum: 0 };
+      groupMap.set(key, g);
+    }
+    g.members.push(it);
+    g.sum += it.maxk;
+  }
+  // 効率の高い順(同じなら面積の大きい順)
+  const items = [...groupMap.values()]
+    .map((g) => ({ ...g, maxk: Math.min(g.sum, Math.floor(total / g.a), N) }))
+    .sort((x, y) => (y.rev / y.a) - (x.rev / x.a) || y.a - x.a);
+  const M = items.length;
+  const cellVal = items.map((it) => it.rev / it.a);
+  const masks = items.map((it) => (1 << it.w) - 1);
+
+  // 形状を無視した場合の上限(マス数と個数だけの制限で解く。c マス以内・n 個以内の最大収益)
+  const Wd = N + 1;
+  let dp = new Float64Array((total + 1) * Wd);
+  for (const it of items) {
+    const nd = new Float64Array(dp.length);
+    for (let c = 0; c <= total; c++) {
+      const kc = Math.floor(c / it.a);
+      for (let n = 0; n <= N; n++) {
+        const base = c * Wd + n;
+        let best = dp[base];
+        const kmax = Math.min(it.maxk, kc, n);
+        for (let k = 1; k <= kmax; k++) {
+          const v = dp[(c - k * it.a) * Wd + (n - k)] + k * it.rev;
+          if (v > best) best = v;
+        }
+        nd[base] = best;
+      }
+    }
+    dp = nd;
+  }
+  const ub = dp[total * Wd + N];
+
+  // 現在の最良の解。placements は {g: グループ番号, r: 行, c: 列} の配列
+  let bestVal = 0;
+  let bestSol = [];
+  let iterations = 0;
+  let lastReport = 0;
+
+  const decode = (sol) => {
+    const used = new Map();
+    const out = [];
+    for (const p of sol) {
+      const g = items[p.g];
+      let mem = null;
+      for (const m of g.members) {
+        if ((used.get(m.idx) || 0) < m.maxk) { mem = m; break; }
+      }
+      used.set(mem.idx, (used.get(mem.idx) || 0) + 1);
+      out.push({ id: mem.idx, r: p.r, c: p.c });
+    }
+    return out;
+  };
+  const emit = (force) => {
+    const now = Date.now();
+    if (!report || (!force && now - lastReport < 250)) return;
+    lastReport = now;
+    report({ best: bestVal, ub, placements: decode(bestSol), nodes: iterations, elapsed: now - t0 });
+  };
+  const offer = (val, sol) => {
+    if (val > bestVal) { bestVal = val; bestSol = sol; emit(false); return true; }
+    return false;
+  };
+
+  let proved = false;
+  const result = (reason) => ({
+    best: bestVal,
+    ub,
+    optimal: bestVal >= ub || proved,
+    reason,
+    placements: decode(bestSol),
+    nodes: iterations,
+    elapsed: Date.now() - t0,
+  });
+
+  // 乱数(結果が毎回同じになるよう、簡易な線形合同法を使う)
+  let seed = 20240607;
+  const rand = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+
+  // 残りの空きマス数 R と、残りの所持数 q(g) の範囲で得られる収益の上限(個数の制限は無視)
+  const fracBound = (R, remOf) => {
+    let cap = R;
+    let b = 0;
+    for (let i = 0; i < M && cap > 0; i++) {
+      const q = remOf(i);
+      if (q <= 0) continue;
+      const cells = q * items[i].a;
+      if (cells <= cap) { b += q * items[i].rev; cap -= cells; }
+      else { b += cap * cellVal[i]; cap = 0; }
+    }
+    return b;
+  };
+
+  /* ---------- ビームサーチ ---------- */
+  function beam(width, deadline, noise) {
+    let cnt = 1;
+    let occ = new Int32Array(H);
+    let used = new Uint16Array(M);
+    let val = new Float64Array(1);
+    let R = new Int32Array([total]);
+    let nU = new Int32Array(1);
+    const hist = [];
+    let bVal = 0;
+    let bLayer = -1;
+    let bIdx = -1;
+    for (let pos = 0; pos < total; pos++) {
+      if (Date.now() > deadline) return null;
+      const r = (pos / W) | 0;
+      const c = pos - r * W;
+      const capC = cnt * (M + 1);
+      const cOcc = new Int32Array(capC * H);
+      const cUsed = new Uint16Array(capC * M);
+      const cVal = new Float64Array(capC);
+      const cR = new Int32Array(capC);
+      const cN = new Int32Array(capC);
+      const cPar = new Int32Array(capC);
+      const cAct = new Int16Array(capC);
+      const cScore = new Float64Array(capC);
+      let m = 0;
+      const push = (s, act, occupied) => {
+        const o = m * H;
+        const so = s * H;
+        for (let k = 0; k < H; k++) cOcc[o + k] = occ[so + k];
+        const uo = m * M;
+        const su = s * M;
+        for (let k = 0; k < M; k++) cUsed[uo + k] = used[su + k];
+        let nn = nU[s];
+        let rr = R[s];
+        let addRev = 0;
+        if (act >= 0) {
+          const it = items[act];
+          const mk = masks[act] << c;
+          for (let k = 0; k < it.h; k++) cOcc[o + r + k] |= mk;
+          cUsed[uo + act]++;
+          nn++;
+          rr -= it.a;
+          addRev = it.rev;
+        } else if (!occupied) {
+          rr -= 1;
+        }
+        cVal[m] = val[s] + addRev;
+        cR[m] = rr;
+        cN[m] = nn;
+        cPar[m] = s;
+        cAct[m] = act;
+        const b = fracBound(rr, (i) => items[i].maxk - cUsed[uo + i]);
+        cScore[m] = cVal[m] + Math.min(b, dp[rr * Wd + (N - nn)]) + (noise ? (rand() - 0.5) * noise : 0);
+        m++;
+      };
+      for (let s = 0; s < cnt; s++) {
+        const occupied = (occ[s * H + r] >> c) & 1;
+        if (occupied) { push(s, -1, true); continue; }
+        if (nU[s] < N) {
+          for (let i = 0; i < M; i++) {
+            const it = items[i];
+            if (used[s * M + i] >= it.maxk) continue;
+            if (c + it.w > W || r + it.h > H) continue;
+            const mk = masks[i] << c;
+            let ok = true;
+            for (let k = 0; k < it.h; k++) {
+              if (occ[s * H + r + k] & mk) { ok = false; break; }
+            }
+            if (ok) push(s, i, false);
+          }
+        }
+        push(s, -1, false);
+      }
+      // 同じ状態(これから置けるマスの空き具合と使用数が同じ)は収益の高いほうだけ残す
+      const seen = new Map();
+      const keep = [];
+      for (let j = 0; j < m; j++) {
+        let h1 = 2166136261;
+        let h2 = 5381;
+        const o = j * H;
+        for (let k = r; k < H; k++) {
+          let v = cOcc[o + k];
+          if (k === r) v &= ~((1 << (c + 1)) - 1);
+          h1 = Math.imul(h1 ^ v, 16777619);
+          h2 = (Math.imul(h2, 33) + v) | 0;
+        }
+        const uo = j * M;
+        for (let k = 0; k < M; k++) {
+          const v = cUsed[uo + k];
+          h1 = Math.imul(h1 ^ v, 16777619);
+          h2 = (Math.imul(h2, 33) + v) | 0;
+        }
+        const key = (h1 >>> 0) * 2097152 + (h2 & 0x1fffff);
+        const prev = seen.get(key);
+        if (prev === undefined) { seen.set(key, keep.length); keep.push(j); }
+        else if (cVal[j] > cVal[keep[prev]]) keep[prev] = j;
+      }
+      let sel = keep;
+      if (keep.length > width) {
+        const sc = Float64Array.from(keep, (j) => cScore[j] * 1e3 + cVal[j] * 1e-3);
+        const sorted = sc.slice().sort();
+        const thr = sorted[sorted.length - width];
+        sel = [];
+        for (let x = 0; x < keep.length && sel.length < width; x++) if (sc[x] >= thr) sel.push(keep[x]);
+      }
+      const n2 = sel.length;
+      const nOcc = new Int32Array(n2 * H);
+      const nUsed = new Uint16Array(n2 * M);
+      const nVal = new Float64Array(n2);
+      const nR = new Int32Array(n2);
+      const nNn = new Int32Array(n2);
+      const par = new Int32Array(n2);
+      const act = new Int16Array(n2);
+      for (let x = 0; x < n2; x++) {
+        const j = sel[x];
+        nOcc.set(cOcc.subarray(j * H, j * H + H), x * H);
+        nUsed.set(cUsed.subarray(j * M, j * M + M), x * M);
+        nVal[x] = cVal[j];
+        nR[x] = cR[j];
+        nNn[x] = cN[j];
+        par[x] = cPar[j];
+        act[x] = cAct[j];
+        if (cVal[j] > bVal) { bVal = cVal[j]; bLayer = pos; bIdx = x; }
+      }
+      hist.push({ par, act });
+      occ = nOcc; used = nUsed; val = nVal; R = nR; nU = nNn; cnt = n2;
+    }
+    const sol = [];
+    if (bLayer >= 0) {
+      let idx = bIdx;
+      for (let layer = bLayer; layer >= 0; layer--) {
+        const a = hist[layer].act[idx];
+        if (a >= 0) sol.push({ g: a, r: (layer / W) | 0, c: layer % W });
+        idx = hist[layer].par[idx];
+      }
+    }
+    return { val: bVal, sol };
+  }
+
+  /* ---------- 個数の組み合わせから調べる探索 ----------
+     形状を無視した上限で有望な「アイテムごとの個数の組み合わせ」を順に取り出し、
+     それが実際に盤面へ収まるかを調べる。すべて調べ終えれば最適だと証明できる。 */
+  const rows = new Int32Array(H);
+  function enumerateCombos(deadline) {
+    if ((M + 1) * (total + 1) * (N + 1) > 8e6) return false;
+    // suf[j][c][n]: j番目以降のアイテムだけを使い、c マス以内・n 個以内で得られる最大収益
+    const suf = new Array(M + 1);
+    suf[M] = new Float64Array((total + 1) * Wd);
+    for (let j = M - 1; j >= 0; j--) {
+      const it = items[j];
+      const prev = suf[j + 1];
+      const cur = new Float64Array(prev.length);
+      for (let c = 0; c <= total; c++) {
+        const kc = Math.floor(c / it.a);
+        for (let n = 0; n <= N; n++) {
+          const base = c * Wd + n;
+          let best = prev[base];
+          const kmax = Math.min(it.maxk, kc, n);
+          for (let k = 1; k <= kmax; k++) {
+            const v = prev[(c - k * it.a) * Wd + (n - k)] + k * it.rev;
+            if (v > best) best = v;
+          }
+          cur[base] = best;
+        }
+      }
+      suf[j] = cur;
+    }
+    const need = new Int32Array(M);
+    let complete = true;
+    let stop = false;
+
+    // need の個数どおりに盤面へ置けるかを調べる(1: 置ける, 0: 置けない, -1: 調べきれなかった)
+    const packTest = (needArea, nodeLimit) => {
+      rows.fill(0);
+      const left = Int32Array.from(need);
+      let leftItems = 0;
+      for (let i = 0; i < M; i++) leftItems += left[i];
+      const order = [];
+      for (let i = 0; i < M; i++) if (left[i] > 0) order.push(i);
+      order.sort((x, y) => items[y].a - items[x].a || items[y].rev - items[x].rev);
+      const fail = new Set();
+      const placed = [];
+      let nodes = 0;
+      let unknown = false;
+      const rec = (pos, R, needLeft, count) => {
+        if (count === 0) return true;
+        if (++nodes > nodeLimit) { unknown = true; return false; }
+        let r = (pos / W) | 0;
+        let c = pos - r * W;
+        while (pos < total && ((rows[r] >> c) & 1)) {
+          pos++; c++;
+          if (c === W) { c = 0; r++; }
+        }
+        if (pos >= total || R < needLeft) return false;
+        let h1 = 2166136261;
+        let h2 = 5381;
+        for (let k = r; k < H; k++) {
+          let v = rows[k];
+          if (k === r) v &= ~((1 << c) - 1);
+          h1 = Math.imul(h1 ^ v, 16777619);
+          h2 = (Math.imul(h2, 33) + v) | 0;
+        }
+        for (let k = 0; k < M; k++) {
+          h1 = Math.imul(h1 ^ left[k], 16777619);
+          h2 = (Math.imul(h2, 33) + left[k]) | 0;
+        }
+        const key = (h1 >>> 0) * 2097152 + (h2 & 0x1fffff) + pos * 9007199254740;
+        if (fail.has(key)) return false;
+        for (let oi = 0; oi < order.length; oi++) {
+          const i = order[oi];
+          if (left[i] === 0) continue;
+          const it = items[i];
+          if (c + it.w > W || r + it.h > H) continue;
+          const mk = masks[i] << c;
+          let ok = true;
+          for (let k = 0; k < it.h; k++) {
+            if (rows[r + k] & mk) { ok = false; break; }
+          }
+          if (!ok) continue;
+          for (let k = 0; k < it.h; k++) rows[r + k] |= mk;
+          left[i]--;
+          placed.push(i, r, c);
+          if (rec(pos + 1, R - it.a, needLeft - it.a, count - 1)) return true;
+          placed.length -= 3;
+          left[i]++;
+          for (let k = 0; k < it.h; k++) rows[r + k] &= ~mk;
+          if (unknown) return false;
+        }
+        if (R - 1 >= needLeft) {
+          if (rec(pos + 1, R - 1, needLeft, count)) return true;
+          if (unknown) return false;
+        }
+        fail.add(key);
+        return false;
+      };
+      const ok = rec(0, total, needArea, leftItems);
+      if (ok) {
+        const sol = [];
+        for (let s = 0; s < placed.length; s += 3) sol.push({ g: placed[s], r: placed[s + 1], c: placed[s + 2] });
+        return { status: 1, sol };
+      }
+      return { status: unknown ? -1 : 0 };
+    };
+
+    const rec = (j, cu, nu, v) => {
+      if (stop) return;
+      if (v + suf[j][(total - cu) * Wd + (N - nu)] <= bestVal) return;
+      if (j === M) {
+        iterations++;
+        if (Date.now() > deadline) { stop = true; complete = false; return; }
+        const res = packTest(cu, 20000);
+        if (res.status === 1) offer(v, res.sol);
+        else if (res.status === -1) complete = false;
+        if (bestVal >= ub) stop = true;
+        return;
+      }
+      const it = items[j];
+      const kmax = Math.min(it.maxk, Math.floor((total - cu) / it.a), N - nu);
+      for (let k = kmax; k >= 0; k--) {
+        need[j] = k;
+        rec(j + 1, cu + k * it.a, nu + k, v + k * it.rev);
+        if (stop) break;
+      }
+      need[j] = 0;
+    };
+    rec(0, 0, 0, 0);
+    return complete && !stop;
+  }
+
+  /* ---------- 一部を外して置き直す探索 ---------- */
+  const rem = new Int32Array(M);
+  const ord = items.map((_, i) => i);
+  const stack = [];
+  let subBest = 0;
+  let subStack = [];
+  let subNodes = 0;
+  let subLimit = 0;
+  let subTarget = Infinity;
+  let subDone = false;
+
+  function subDfs(pos, val, R, nRem) {
+    if (subDone) return;
+    if (++subNodes > subLimit) { subDone = true; return; }
+    let r = (pos / W) | 0;
+    let c = pos - r * W;
+    while (pos < total && ((rows[r] >> c) & 1)) {
+      pos++; c++;
+      if (c === W) { c = 0; r++; }
+    }
+    if (pos >= total || nRem === 0 || R === 0) {
+      if (val > subBest) {
+        subBest = val;
+        subStack = stack.slice();
+        if (val >= subTarget) subDone = true;
+      }
+      return;
+    }
+    if (val + dp[R * Wd + nRem] <= subBest) return;
+    if (val + fracBound(R, (i) => rem[i]) <= subBest) return;
+    for (let oi = 0; oi < M; oi++) {
+      const i = ord[oi];
+      if (rem[i] === 0) continue;
+      const it = items[i];
+      if (c + it.w > W || r + it.h > H) continue;
+      const mk = masks[i] << c;
+      let ok = true;
+      for (let k = 0; k < it.h; k++) {
+        if (rows[r + k] & mk) { ok = false; break; }
+      }
+      if (!ok) continue;
+      for (let k = 0; k < it.h; k++) rows[r + k] |= mk;
+      rem[i]--;
+      stack.push(i, r, c);
+      subDfs(pos + 1, val + it.rev, R - it.a, nRem - 1);
+      stack.length -= 3;
+      rem[i]++;
+      for (let k = 0; k < it.h; k++) rows[r + k] &= ~mk;
+      if (subDone) return;
+    }
+    subDfs(pos + 1, val, R - 1, nRem);
+  }
+
+  function improve(deadline) {
+    let cur = bestSol.slice();
+    let curVal = bestVal;
+    let lastProgress = Date.now();
+    const kickMs = Math.max(1000, timeLimitMs * 0.1);
+
+    // isRemoved に当てはまる配置を外し、空いた場所を厳密に置き直す
+    const step = (isRemoved, allowWorse) => {
+      rows.fill(0);
+      for (let i = 0; i < M; i++) rem[i] = items[i].maxk;
+      const kept = [];
+      let keptVal = 0;
+      let keptCells = 0;
+      for (const p of cur) {
+        if (isRemoved(p)) continue;
+        const it = items[p.g];
+        kept.push(p);
+        keptVal += it.rev;
+        keptCells += it.a;
+        rem[p.g]--;
+        for (let k = 0; k < it.h; k++) rows[p.r + k] |= masks[p.g] << p.c;
+      }
+      const removedVal = curVal - keptVal;
+      // 置く順番に少しばらつきを入れて、同じ収益でも別の配置を試す
+      for (let i = 0; i < M; i++) ord[i] = i;
+      for (let i = 0; i + 1 < M; i++) {
+        if (rand() < 0.3) { const t = ord[i]; ord[i] = ord[i + 1]; ord[i + 1] = t; }
+      }
+      stack.length = 0;
+      subBest = allowWorse ? -1 : removedVal - 1;
+      subStack = null;
+      subNodes = 0;
+      subLimit = 40000;
+      subTarget = ub - keptVal;
+      subDone = false;
+      subDfs(0, 0, total - keptCells, N - kept.length);
+      if (subStack && (allowWorse || subBest >= removedVal)) {
+        const next = kept.slice();
+        for (let s = 0; s < subStack.length; s += 3) next.push({ g: subStack[s], r: subStack[s + 1], c: subStack[s + 2] });
+        const nextVal = keptVal + subBest;
+        if (nextVal > curVal) lastProgress = Date.now();
+        cur = next;
+        curVal = nextVal;
+        if (curVal > bestVal) offer(curVal, cur.slice());
+      }
+    };
+
+    while (bestVal < ub) {
+      const now = Date.now();
+      if (now >= deadline) return 'time';
+      iterations++;
+      if (now - lastProgress > kickMs) {
+        // しばらく改善しないときは、別の形から探し直す
+        if (rand() < 0.5) {
+          // 評価にランダムなばらつきを入れたビームサーチで、配置を作り直す
+          const res = beam(1200, deadline, 40 + rand() * 400);
+          if (res) {
+            cur = res.sol;
+            curVal = res.val;
+            if (curVal > bestVal) offer(curVal, cur.slice());
+          }
+        } else {
+          // 配置の一部をランダムに外して、置き直す
+          const q = 0.3 + rand() * 0.2;
+          step(() => rand() < q, true);
+        }
+        lastProgress = Date.now();
+      } else {
+        // 外す範囲(盤面の一部)をランダムに決める。形は、四角・横長の帯・縦長の帯をまぜる
+        const shape = rand();
+        let hh;
+        let ww;
+        if (shape < 0.4) {
+          hh = Math.min(H, 2 + Math.floor(rand() * 5));
+          ww = Math.min(W, 3 + Math.floor(rand() * 6));
+        } else if (shape < 0.7) {
+          hh = Math.min(H, 2 + Math.floor(rand() * 3));
+          ww = W;
+        } else {
+          hh = H;
+          ww = Math.min(W, 3 + Math.floor(rand() * 4));
+        }
+        const r0 = Math.floor(rand() * (H - hh + 1));
+        const c0 = Math.floor(rand() * (W - ww + 1));
+        step((p) => {
+          const it = items[p.g];
+          return p.r < r0 + hh && p.r + it.h > r0 && p.c < c0 + ww && p.c + it.w > c0;
+        }, false);
+      }
+      emit(false);
+    }
+    return 'ub';
+  }
+
+  /* ---------- 実行 ---------- */
+  const beamBudget = t0 + timeLimitMs * 0.25;
+  let width = 300;
+  let lastCost = 0;
+  while (bestVal < ub) {
+    const start = Date.now();
+    if (start + lastCost * 4 > beamBudget && lastCost > 0) break;
+    const res = beam(width, beamBudget);
+    if (!res) break;
+    lastCost = Date.now() - start;
+    iterations++;
+    offer(res.val, res.sol);
+    emit(true);
+    width *= 4;
+    if (width > 40000) break;
+  }
+  if (bestVal >= ub) return result('ub');
+  if (enumerateCombos(t0 + timeLimitMs * 0.6)) {
+    proved = true;
+    return result('proved');
+  }
+  if (bestVal >= ub) return result('ub');
+  const reason = improve(t0 + timeLimitMs);
+  return result(reason);
+}
+// ==== SOLVER END ====
+
+(() => {
+  'use strict';
+
+  const STORE_KEY = 'exhibit-optimizer-v2';
+  const TIME_LIMIT_SEC = 10; // 計算の制限時間(固定)
+  const BOARD_H = 8; // 盤面の縦(固定)
+  const BOARD_W = 15; // 盤面の横(固定)
+  const MAX_ITEMS = 99; // 配置できる個数の上限(固定)
+  const MAX_REVENUE = 1e12; // 展示収益として受け付ける最大値(これを超える入力は、不備として扱う)
+
+  // 初期のアイテム表(名前, 展示収益, 縦, 横, 画像の番号)。画像の番号は、img/board/item-NN.webp と、img/icons.webp の中の位置(左上が1)
+  const DEFAULT_ROWS = [
+    ['エターナルハート', 1314, 1, 1, 1],
+    ['蒼天の碧波', 2247, 2, 2, 2],
+    ['ハイパーディスク', 1024, 1, 2, 3],
+    ['金の錦鯉像', 4533, 4, 4, 4],
+    ['古いブリーフケース', 1155, 2, 3, 5],
+    ['Pendragon模型', 4034, 5, 5, 6],
+    ['オールフィッシュ', 600, 4, 1, 7],
+    ['他山の石', 300, 2, 1, 8],
+    ['幾何学', 123, 1, 1, 9],
+    ['混沌の核', 123, 1, 1, 10],
+    ['未知のカードキー', 730, 2, 3, 11],
+    ['輝眼の権能', 577, 1, 5, 12],
+    ['永久花冠', 400, 2, 2, 13],
+    ['ティアドロップ', 100, 1, 1, 14],
+    ['携帯用ディスプレイ', 485, 2, 3, 15],
+    ['鳴り玉', 157, 1, 2, 16],
+  ];
+
+  const $ = (sel) => document.querySelector(sel);
+  const el = {
+    solve: $('#solveBtn'),
+    stop: $('#stopBtn'),
+    runActions: $('#runActions'),
+    boardCaption: $('#boardCaption'),
+    selInfo: $('#selInfo'),
+    note: $('#note'),
+    result: $('#result'),
+    total: $('#total'),
+    status: $('#status'),
+    usedCells: $('#usedCells'),
+    usedItems: $('#usedItems'),
+    board: $('#board'),
+    breakdown: $('#breakdown'),
+    breakdownBody: $('#breakdownBody'),
+    breakdownFoot: $('#breakdownFoot'),
+    emptyMsg: $('#emptyMsg'),
+    stale: $('#stale'),
+    notice: $('#notice'),
+    tbody: $('#itemBody'),
+    bulk: $('#bulk'),
+    bulkMsg: $('#bulkMsg'),
+  };
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+  const fmt = (v) => Number(v).toLocaleString('ja-JP', { maximumFractionDigits: 1 });
+  const nameOf = (s) => s || '(名称なし)';
+
+  // 全角の数字や記号を半角にそろえ、カンマを取り除く
+  const toHalf = (s) => String(s)
+    .replace(/[０-９．，]/g, (ch) => (
+      ch === '．' ? '.' : ch === '，' ? ',' : String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)
+    ))
+    .replace(/,/g, '')
+    .trim();
+  const parseIntStrict = (s) => { const t = toHalf(s); return /^\d+$/.test(t) ? Number(t) : null; };
+  const parseNum = (s) => { const t = toHalf(s); return /^\d+(\.\d+)?$/.test(t) ? Number(t) : null; };
+
+  /* ---------- 状態と保存 ---------- */
+  let nextId = 1;
+  const newItem = (name = '', rev = '', h = '', w = '', owned = '') => ({
+    id: nextId++, name: String(name), rev: String(rev), h: String(h), w: String(w), owned: String(owned),
+  });
+
+  function defaultState() {
+    nextId = 1;
+    return { items: DEFAULT_ROWS.map((r) => newItem(r[0], r[1], r[2], r[3])) };
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.items)) return null;
+      nextId = 1;
+      return { items: d.items.map((i) => newItem(i.name ?? '', i.rev ?? '', i.h ?? '', i.w ?? '', i.owned ?? '')) };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function save() {
+    try {
+      const data = { items: state.items.map(({ name, rev, h, w, owned }) => ({ name, rev, h, w, owned })) };
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    } catch (e) { /* 保存できない環境では何もしない */ }
+  }
+
+  let state = load() || defaultState();
+
+  /* ---------- 入力の確認 ---------- */
+  // アイテム1行の入力を確認する。空の行は null、問題のある欄は Set で返す
+  function itemErrors(it) {
+    if ([it.name, it.rev, it.h, it.w, it.owned].every((s) => s.trim() === '')) return null;
+    const errors = new Set();
+    const rev = parseNum(it.rev);
+    if (rev === null || rev > MAX_REVENUE) errors.add('rev');
+    const h = parseIntStrict(it.h);
+    const w = parseIntStrict(it.w);
+    if (h === null || h < 1) errors.add('h');
+    if (w === null || w < 1) errors.add('w');
+    if (it.owned.trim() !== '' && parseIntStrict(it.owned) === null) errors.add('owned');
+    return errors;
+  }
+
+  function parseItem(it) {
+    const errors = itemErrors(it);
+    if (errors === null) return { status: 'blank' };
+    if (errors.size) return { status: 'bad', errors };
+    const h = parseIntStrict(it.h);
+    const w = parseIntStrict(it.w);
+    return {
+      status: 'ok',
+      rev: parseNum(it.rev),
+      h,
+      w,
+      a: h * w,
+      owned: it.owned.trim() === '' ? Infinity : parseIntStrict(it.owned),
+    };
+  }
+
+  /* ---------- 画像(飾り) ---------- */
+  // 画像は、初期の16アイテムだけに、名前で紐づける。画像がなくても、色と名前の表示で、同じように使える。
+  // 画像がないアイテムは、アイテムごとの色の四角に、名前(または1文字目)を出す。
+  // 名前の前後の空白と、かぎかっこ(「」『』)を除いた形。ゲーム内の表記(「エターナルハート」など)で入力しても、同じアイテムとして扱う
+  const baseName = (name) => String(name).trim().replace(/^[「『]+|[」』]+$/g, '').trim();
+  const IMG_NO_BY_NAME = new Map(DEFAULT_ROWS.map((r) => [r[0], r[4]]));
+  const imgNoOf = (name) => IMG_NO_BY_NAME.get(baseName(name)) || 0;
+  const SPRITE_COLS = 4; // img/icons.webp は、4列×4行に並べた1枚の画像
+  const SPRITE_ROWS = 4;
+  const saveData = !!(navigator.connection && navigator.connection.saveData); // 通信量を抑える設定
+  if (saveData) document.documentElement.classList.add('no-img');
+
+  // アイテムごとの色(盤面と表のアイコンで共通)。白い文字が読めるよう、どの色も明るさをそろえる(oklch)。
+  // oklch が使えない古いブラウザでは、hsl にする
+  const OKLCH = !!(window.CSS && CSS.supports && CSS.supports('color', 'oklch(52% 0.12 0)'));
+  const colorOf = (id) => {
+    const hue = Math.round((id * 137.508) % 360);
+    return OKLCH ? `oklch(52% 0.12 ${hue})` : `hsl(${hue}, 50%, 40%)`;
+  };
+  const firstChar = (name) => Array.from(baseName(name))[0] || '';
+  const boardImageUrl = (name) => {
+    const n = saveData ? 0 : imgNoOf(name);
+    return n ? `img/board/item-${String(n).padStart(2, '0')}.webp` : '';
+  };
+
+  // アイコンの画像の位置(1枚にまとめた画像から、番号の位置を切り出す)。割合で指定するので、アイコンの大きさによらない
+  const iconPos = (n) => `${((n - 1) % SPRITE_COLS) * 100 / (SPRITE_COLS - 1)}% ${Math.floor((n - 1) / SPRITE_COLS) * 100 / (SPRITE_ROWS - 1)}%`;
+
+  // 表のアイコン。対応する画像がなければ、色の四角に名前の1文字目を重ねる
+  function setIcon(ico, name, id) {
+    const n = imgNoOf(name);
+    ico.style.setProperty('--c', colorOf(id)); // 画像がない(または出さない)ときの色。盤面の色と同じ
+    ico.textContent = firstChar(name);
+    if (!n) {
+      ico.removeAttribute('data-ico');
+      ico.style.backgroundPosition = '';
+      return;
+    }
+    ico.dataset.ico = n;
+    ico.style.backgroundPosition = iconPos(n);
+  }
+
+  // 内訳の表の目印。表のアイコンと同じ見た目(画像、または、色の四角に1文字)にする
+  function breakdownMark(x) {
+    const n = imgNoOf(x.name);
+    return `<span class="ico sm" aria-hidden="true"${n ? ` data-ico="${n}"` : ''} style="--c:${colorOf(x.id)};${n ? `background-position:${iconPos(n)}` : ''}">${esc(firstChar(x.name))}</span>`;
+  }
+
+  // アイコンの画像を読み込めないときは、画像をやめて、色と1文字にする
+  function checkSprite() {
+    if (saveData) return;
+    const sp = new Image();
+    sp.onerror = () => document.documentElement.classList.add('no-img');
+    sp.src = 'img/icons.webp';
+  }
+
+  // 盤面の画像。読み込み中は、画像の枠と同じ色の四角(文字なし)にする。読み込めなかったときは、色と名前(または1文字)にする
+  const imgState = new Map(); // url -> 'wait' | 'ok' | 'bad'
+  function applyBoardImage(rect) {
+    const url = rect.dataset.img;
+    let st = imgState.get(url);
+    if (st === undefined) {
+      st = 'wait';
+      imgState.set(url, st);
+      const im = new Image();
+      const settle = (result) => {
+        imgState.set(url, result);
+        el.board.querySelectorAll(`.rect[data-img="${url}"]`).forEach(applyBoardImage);
+        if (result === 'bad') sizeMarks();
+      };
+      im.onload = () => settle('ok');
+      im.onerror = () => settle('bad');
+      im.src = url;
+    }
+    rect.classList.toggle('img-wait', st === 'wait');
+    if (st === 'ok') {
+      rect.style.backgroundImage = `url("${url}")`;
+      rect.classList.add('has-img');
+      rect.textContent = '';
+    }
+  }
+
+  // 画像がないアイテムの表示。フルネームが枠に収まるとき(縦1マスのアイテムは1行、2マス以上は最大2行)だけフルネーム、
+  // 収まらないときは名前の1文字目にする(表のアイコンと同じ見た目)。細切れの文字より、見やすさを優先する。
+  // フルネームは、選択時の説明、内訳の表、title で確認できる
+  function sizeMarks() {
+    const range = document.createRange();
+    const pitch = el.board.clientWidth / BOARD_W;
+    el.board.querySelectorAll('.rect[data-name]:not(.has-img):not(.img-wait)').forEach((rect) => {
+      const rows = Number(rect.dataset.rows) || 1;
+      const cols = Number(rect.dataset.cols) || 1;
+      const maxLines = Math.min(2, rows);
+      rect.style.fontWeight = '400';
+      rect.style.lineHeight = '1.2';
+      rect.textContent = rect.dataset.name;
+      let full = false;
+      for (const size of [11, 10]) {
+        rect.style.fontSize = `${size}px`;
+        range.selectNodeContents(rect);
+        const lines = new Set([...range.getClientRects()].map((q) => Math.round(q.top))).size;
+        const text = range.getBoundingClientRect();
+        const box = rect.getBoundingClientRect();
+        if (lines <= maxLines && text.height <= box.height - 2 && text.width <= box.width) { full = true; break; }
+      }
+      if (full) return;
+      rect.textContent = rect.dataset.mark;
+      rect.style.fontWeight = '';
+      rect.style.lineHeight = '';
+      rect.style.fontSize = `${Math.max(11, Math.min(40, Math.round(Math.min(rows, cols) * pitch * 0.5)))}px`;
+    });
+  }
+
+  /* ---------- アイテム表の描画 ---------- */
+  const rows = new Map(); // id -> tr
+
+  function updateRowMeta(tr, it) {
+    const p = parseItem(it);
+    tr.querySelectorAll('input[data-f]').forEach((input) => {
+      input.setAttribute('aria-invalid', String(p.status === 'bad' && p.errors.has(input.dataset.f)));
+    });
+    setIcon(tr.querySelector('.ico'), it.name, it.id);
+    tr.querySelector('[data-act="del"]').setAttribute('aria-label', `${nameOf(it.name.trim())}の行を削除`);
+    tr.querySelector('[data-role="cells"]').textContent = p.status === 'ok' ? p.a : '';
+    tr.querySelector('[data-role="eff"]').textContent = p.status === 'ok' ? (p.rev / p.a).toFixed(1) : '';
+  }
+
+  function renderTable() {
+    rows.clear();
+    el.tbody.innerHTML = '';
+    for (const it of state.items) {
+      const tr = document.createElement('tr');
+      tr.dataset.id = it.id;
+      tr.innerHTML = `
+        <td data-label="アイテム名"><div class="namecell"><span class="ico" aria-hidden="true"></span><input type="text" enterkeyhint="next" data-f="name" aria-label="アイテム名" autocomplete="off" value="${esc(it.name)}"></div></td>
+        <td class="c-owned" data-label="所持数"><input type="text" inputmode="numeric" enterkeyhint="next" data-f="owned" aria-label="所持数" placeholder="無制限" autocomplete="off" value="${esc(it.owned)}"></td>
+        <td class="c-rev" data-label="展示収益"><input type="text" inputmode="numeric" enterkeyhint="next" data-f="rev" aria-label="展示収益" autocomplete="off" value="${esc(it.rev)}"></td>
+        <td class="c-size" data-label="縦"><input type="text" inputmode="numeric" enterkeyhint="next" data-f="h" aria-label="縦" autocomplete="off" value="${esc(it.h)}"></td>
+        <td class="c-size" data-label="横"><input type="text" inputmode="numeric" enterkeyhint="next" data-f="w" aria-label="横" autocomplete="off" value="${esc(it.w)}"></td>
+        <td class="num auto" data-role="cells" data-label="マス数"></td>
+        <td class="num auto" data-role="eff" data-label="展示効率"></td>
+        <td class="c-del" data-label=""><button type="button" class="btn quiet" data-act="del" aria-label="${esc(nameOf(it.name.trim()))}の行を削除">削除</button></td>`;
+      el.tbody.appendChild(tr);
+      rows.set(it.id, tr);
+      updateRowMeta(tr, it);
+    }
+  }
+
+  /* ---------- 結果の表示 ---------- */
+  let lastCtx = null; // 直近に計算したときの盤面とアイテム情報
+  let selectedId = null; // 盤面や内訳表で選んでいるアイテム
+  let lastList = []; // 直近の内訳(選んだアイテムの説明に使う)
+
+  function renderBoard(placements, ctx) {
+    const { H, W, info } = ctx;
+    const g = el.board;
+    g.style.gridTemplateColumns = `repeat(${W}, 1fr)`;
+    g.style.gridTemplateRows = `repeat(${H}, 1fr)`;
+    g.style.aspectRatio = `${W} / ${H}`;
+    const frag = document.createDocumentFragment();
+    for (let r = 0; r < H; r++) {
+      for (let c = 0; c < W; c++) {
+        const d = document.createElement('div');
+        d.className = 'cell';
+        d.style.gridRow = String(r + 1);
+        d.style.gridColumn = String(c + 1);
+        frag.appendChild(d);
+      }
+    }
+    for (const p of placements) {
+      const it = info.get(p.id);
+      if (!it) continue;
+      const d = document.createElement('div');
+      d.className = 'rect';
+      d.dataset.id = p.id;
+      d.style.gridRow = `${p.r + 1} / span ${it.h}`;
+      d.style.gridColumn = `${p.c + 1} / span ${it.w}`;
+      d.style.setProperty('--c', colorOf(p.id));
+      const url = boardImageUrl(it.name);
+      if (url) d.dataset.img = url;
+      d.title = `${nameOf(it.name)}(縦${it.h}×横${it.w})`;
+      d.dataset.rows = it.h;
+      d.dataset.cols = it.w;
+      const mark = firstChar(it.name);
+      if (mark) { d.dataset.mark = mark; d.dataset.name = String(it.name).trim(); } // 画像がないときの表示(フルネーム、または1文字目)
+      frag.appendChild(d);
+    }
+    g.innerHTML = '';
+    g.appendChild(frag);
+    g.setAttribute('aria-label', `縦${H}×横${W}の盤面の配置`);
+    g.querySelectorAll('.rect[data-img]').forEach(applyBoardImage);
+    sizeMarks();
+  }
+
+  function statusText(res, ctx, kind) {
+    if (kind === 'running') {
+      return `計算中です(${(res.elapsed / 1000).toFixed(1)}秒経過)。ここまでで最良の配置を表示しています。`;
+    }
+    if (res.ub === 0) return '配置できるアイテムがありません。'; // どのアイテムも置けない(空の表、所持数がすべて0、など)
+    if (res.optimal) return '最適です。';
+    const gap = res.ub - res.best;
+    const lead = kind === 'stopped' ? '中止しました。' : `${ctx.timeSec}秒で打ち切りました。`;
+    return `${lead}最適かは未確認ですが、最適との差は最大${fmt(gap)}です。`;
+  }
+
+  function renderResult(res, ctx, kind) {
+    const { H, W, info } = ctx;
+    const placements = res.placements;
+
+    const counts = new Map();
+    for (const p of placements) counts.set(p.id, (counts.get(p.id) || 0) + 1);
+
+    let usedCells = 0;
+    let usedItems = 0;
+    const list = [];
+    counts.forEach((k, id) => {
+      const it = info.get(id);
+      if (!it) return;
+      usedCells += k * it.h * it.w;
+      usedItems += k;
+      list.push({ id, name: it.name, k, cells: k * it.h * it.w, rev: k * it.rev });
+    });
+    list.sort((a, b) => b.rev - a.rev);
+
+    el.total.textContent = fmt(res.best);
+    el.usedCells.textContent = `${usedCells} / ${H * W}`;
+    el.usedItems.textContent = String(usedItems);
+
+    const nothing = kind !== 'running' && res.ub === 0;
+    el.status.className = `status ${kind === 'running' ? 'run' : nothing ? 'idle' : res.optimal ? 'ok' : 'warn'}`;
+    el.status.setAttribute('aria-live', kind === 'running' ? 'off' : 'polite'); // 計算中の更新は読み上げない
+    el.status.textContent = statusText(res, ctx, kind);
+
+    renderBoard(placements, ctx);
+
+    lastList = list;
+    el.breakdownBody.innerHTML = list.map((x) => `
+      <tr data-id="${x.id}" tabindex="0" role="button" aria-pressed="false">
+        <td><span class="bd-name">${breakdownMark(x)}<span>${esc(nameOf(x.name))}</span></span></td>
+        <td class="num">${x.k}</td>
+        <td class="num">${x.cells}</td>
+        <td class="num">${fmt(x.rev)}</td>
+      </tr>`).join('');
+    el.breakdownFoot.innerHTML = list.length
+      ? `<tr><td>合計</td><td class="num">${usedItems}</td><td class="num">${usedCells}</td><td class="num">${fmt(res.best)}</td></tr>`
+      : '';
+    el.breakdown.hidden = list.length === 0;
+    el.emptyMsg.hidden = list.length !== 0;
+    applySelection();
+  }
+
+  // 選んだアイテムを、盤面と内訳表の両方で強調する
+  function applySelection() {
+    if (selectedId !== null && !lastList.some((x) => x.id === selectedId)) selectedId = null;
+    const on = selectedId !== null;
+    el.board.classList.toggle('has-sel', on);
+    el.board.querySelectorAll('.rect').forEach((r) => r.classList.toggle('sel', on && Number(r.dataset.id) === selectedId));
+    el.breakdownBody.querySelectorAll('tr[data-id]').forEach((tr) => {
+      const sel = on && Number(tr.dataset.id) === selectedId;
+      tr.classList.toggle('sel', sel);
+      tr.setAttribute('aria-pressed', String(sel));
+    });
+    const row = on ? lastList.find((x) => x.id === selectedId) : null;
+    el.selInfo.textContent = row ? `${nameOf(row.name)} ×${row.k}(${row.cells}マス、展示収益 ${fmt(row.rev)})` : '';
+  }
+
+  function toggleSelect(id) {
+    selectedId = selectedId === id ? null : id;
+    applySelection();
+  }
+
+  el.board.addEventListener('click', (e) => {
+    const rect = e.target.closest('.rect');
+    if (rect) toggleSelect(Number(rect.dataset.id));
+    else if (selectedId !== null) { selectedId = null; applySelection(); }
+  });
+  el.breakdownBody.addEventListener('click', (e) => {
+    const tr = e.target.closest('tr[data-id]');
+    if (tr) toggleSelect(Number(tr.dataset.id));
+  });
+  el.breakdownBody.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const tr = e.target.closest('tr[data-id]');
+    if (!tr) return;
+    e.preventDefault();
+    toggleSelect(Number(tr.dataset.id));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && selectedId !== null) { selectedId = null; applySelection(); }
+  });
+
+  // 計算前の結果欄(まだ計算していない状態)を表示する
+  function renderIdle() {
+    el.total.textContent = '—';
+    el.usedCells.textContent = '—';
+    el.usedItems.textContent = '—';
+    el.status.className = 'status idle';
+    el.status.setAttribute('aria-live', 'polite');
+    el.status.textContent = '所持数を入力して「計算する」を押すと、展示収益が最大になる配置が表示されます。';
+    renderBoard([], { H: BOARD_H, W: BOARD_W, info: new Map() });
+    el.breakdown.hidden = true;
+    el.emptyMsg.hidden = true;
+    lastList = [];
+    selectedId = null;
+    applySelection();
+  }
+
+  /* ---------- 計算の実行 ---------- */
+  let worker = null;
+  let running = false;
+  let lastProgress = null;
+  let runToken = 0;
+  let editedWhileRunning = false;
+
+  function setRunning(on) {
+    running = on;
+    el.solve.disabled = on;
+    el.solve.textContent = on ? '計算中…' : '計算する';
+    el.runActions.hidden = !on;
+  }
+
+  function markStale() {
+    if (running) { editedWhileRunning = true; return; }
+    if (lastCtx) el.stale.hidden = false;
+  }
+
+  // 計算結果が画面の外にあるときだけ、結果の位置までスクロールする
+  function ensureResultVisible() {
+    const top = el.result.getBoundingClientRect().top;
+    if (top >= 0 && top < window.innerHeight * 0.6) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.result.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  function cleanupWorker() {
+    if (worker) { worker.terminate(); worker = null; }
+  }
+
+  // アイテムの表から、計算に渡す問題を組み立てる
+  function buildProblem() {
+    const total = BOARD_H * BOARD_W;
+    const capacity = Math.min(MAX_ITEMS, total);
+    const items = []; // ソルバーに渡すアイテム
+    const info = new Map(); // 結果の表示に使うアイテムの情報
+    const tooBig = []; // 盤面に入らないアイテム
+    let bad = 0; // 入力に不備がある行の数
+    let unlimited = 0; // 所持数が空欄(無制限)の行の数
+    for (const it of state.items) {
+      const p = parseItem(it);
+      if (p.status === 'bad') { bad++; continue; }
+      if (p.status !== 'ok') continue;
+      if (p.h > BOARD_H || p.w > BOARD_W) { tooBig.push(nameOf(it.name.trim())); continue; }
+      if (p.owned === Infinity) unlimited++;
+      info.set(it.id, { name: it.name.trim(), rev: p.rev, h: p.h, w: p.w });
+      const maxk = Math.min(p.owned, Math.floor(total / p.a), capacity);
+      if (maxk > 0) items.push({ idx: it.id, rev: p.rev, h: p.h, w: p.w, maxk });
+    }
+    return { items, info, tooBig, bad, unlimited };
+  }
+
+  // 入力の問題(赤字)と、お知らせ(灰色)を表示する
+  function showProblemNotes({ bad, tooBig, unlimited }) {
+    const problems = [];
+    if (bad) problems.push(`${bad}行は入力に不備があるため、計算に含めていません(赤枠の項目を確認してください)。`);
+    if (tooBig.length) problems.push(`盤面に入らないため、計算に含めていません: ${tooBig.join('、')}`);
+    el.notice.textContent = problems.join(' ');
+    el.note.textContent = unlimited ? `所持数が空欄の${unlimited}件は、無制限として計算しました。` : '';
+  }
+
+  // 画面が固まらないよう、Web Workerで計算する(使えない環境では、そのまま計算する)
+  function runSolverAsync(payload, isCurrent, onProgress, onDone) {
+    const finish = (res) => { if (isCurrent()) { cleanupWorker(); onDone(res); } };
+    const runInline = () => {
+      el.status.textContent = '計算中です(この間は画面が固まることがあります)…';
+      setTimeout(() => { if (isCurrent()) finish(runSolver(payload, null)); }, 30);
+    };
+    try {
+      const src = `const runSolver = ${runSolver.toString()};
+        self.onmessage = (e) => {
+          const res = runSolver(e.data, (p) => self.postMessage({ type: 'progress', p }));
+          self.postMessage({ type: 'done', res });
+        };`;
+      worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      worker.onmessage = (ev) => {
+        if (ev.data.type === 'progress') { if (isCurrent()) onProgress(ev.data.p); } else finish(ev.data.res);
+      };
+      worker.onerror = () => {
+        cleanupWorker();
+        if (isCurrent()) runInline();
+      };
+      worker.postMessage(payload);
+    } catch (e) {
+      cleanupWorker();
+      runInline();
+    }
+  }
+
+  function startSolve() {
+    if (running) return;
+    const problem = buildProblem();
+    showProblemNotes(problem);
+    el.stale.hidden = true;
+
+    const ctx = { H: BOARD_H, W: BOARD_W, info: problem.info, timeSec: TIME_LIMIT_SEC };
+    lastCtx = ctx;
+    lastProgress = null;
+    editedWhileRunning = false;
+    const token = ++runToken;
+    setRunning(true);
+    el.status.className = 'status run';
+    el.status.setAttribute('aria-live', 'off');
+    el.status.textContent = '計算中です…';
+
+    const payload = { h: BOARD_H, w: BOARD_W, n: MAX_ITEMS, items: problem.items, timeLimitMs: TIME_LIMIT_SEC * 1000 };
+    runSolverAsync(
+      payload,
+      () => token === runToken,
+      (p) => { lastProgress = p; renderResult(p, ctx, 'running'); },
+      (res) => {
+        setRunning(false);
+        renderResult(res, ctx, 'done');
+        if (editedWhileRunning) { editedWhileRunning = false; el.stale.hidden = false; }
+      }
+    );
+  }
+
+  el.solve.addEventListener('click', () => {
+    startSolve();
+    ensureResultVisible();
+  });
+
+  el.stop.addEventListener('click', () => {
+    if (!running) return;
+    runToken++;
+    cleanupWorker();
+    setRunning(false);
+    if (lastProgress && lastCtx) {
+      const optimal = lastProgress.best >= lastProgress.ub;
+      renderResult({ ...lastProgress, optimal }, lastCtx, optimal ? 'done' : 'stopped');
+    } else {
+      el.status.className = 'status warn';
+      el.status.setAttribute('aria-live', 'polite');
+      el.status.textContent = '中止しました。';
+    }
+  });
+
+  /* ---------- 入力の操作 ---------- */
+  el.tbody.addEventListener('input', (e) => {
+    const inp = e.target.closest('input[data-f]');
+    if (!inp) return;
+    const tr = inp.closest('tr');
+    const it = state.items.find((x) => x.id === Number(tr.dataset.id));
+    if (!it) return;
+    it[inp.dataset.f] = inp.value;
+    updateRowMeta(tr, it);
+    save();
+    markStale();
+  });
+
+  // 表の入力: Enterで、次の行の同じ欄へ移る(Shift+Enterで前の行へ)。日本語入力の変換中は動かさない
+  el.tbody.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+    const inp = e.target.closest('input[data-f]');
+    if (!inp) return;
+    e.preventDefault();
+    const tr = inp.closest('tr');
+    const next = e.shiftKey ? tr.previousElementSibling : tr.nextElementSibling;
+    if (next) next.querySelector(`input[data-f="${inp.dataset.f}"]`).focus();
+    else inp.blur();
+  });
+
+  // 数字の欄は、選択したまま入力を始められるようにする(上書きしやすくする)
+  el.tbody.addEventListener('focusin', (e) => {
+    const inp = e.target;
+    if (inp.matches && inp.matches('input[data-f]:not([data-f="name"])')) requestAnimationFrame(() => { if (document.activeElement === inp) inp.select(); }); // 別の欄へ移った後に、選択(とフォーカス)を奪わない
+  });
+
+  el.tbody.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-act="del"]');
+    if (!btn) return;
+    const id = Number(btn.closest('tr').dataset.id);
+    state.items = state.items.filter((x) => x.id !== id);
+    save();
+    renderTable();
+    markStale();
+  });
+
+  $('#addRow').addEventListener('click', () => {
+    const it = newItem();
+    state.items.push(it);
+    save();
+    renderTable();
+    rows.get(it.id).querySelector('input').focus();
+  });
+
+  $('#sortRows').addEventListener('click', () => {
+    const eff = (it) => { const p = parseItem(it); return p.status === 'ok' ? p.rev / p.a : -1; };
+    state.items.sort((a, b) => eff(b) - eff(a));
+    save();
+    renderTable();
+  });
+
+  $('#resetRows').addEventListener('click', () => {
+    if (!confirm('アイテムの表を初期の状態に戻します。入力した所持数も消えます。よろしいですか?')) return;
+    state = defaultState();
+    save();
+    renderTable();
+    if (lastCtx) markStale(); else renderIdle();
+  });
+
+  /* ---------- まとめて貼り付け・書き出し ---------- */
+  // 入力例(薄い表示にも、ボタンでの挿入にも使う)
+  const EXAMPLE = [
+    'アイテム名\t展示収益\t縦\t横\t所持数',
+    'アイテムA\t1000\t1\t1\t5',
+    'アイテムB\t2500\t2\t3',
+    'アイテムC\t4000\t4\t4\t2',
+  ].join('\n');
+
+  // 見出しとして認識する名前
+  const HEADER_ALIASES = {
+    name: ['アイテム名', '正式な展示名', '展示名', '名前', '名称'],
+    rev: ['展示収益', '収益'],
+    h: ['縦'],
+    w: ['横'],
+    owned: ['所持数', '所持'],
+    cells: ['マス数'], // 縦×横との食い違いを確認するためだけに使う
+  };
+
+  const splitLine = (raw) => (raw.includes('\t') ? raw.split('\t').map((s) => s.trim()) : raw.trim().split(/[\s,]+/));
+  const optInt = (s) => { const v = parseIntStrict(s ?? ''); return v === null ? '' : String(v); };
+
+  // 見出しがあるとき: 見出し名で列を判別する
+  function fromColumns(t, cols) {
+    const rev = parseNum(t[cols.rev] ?? '');
+    if (rev === null) return null;
+    return {
+      name: t[cols.name] ?? '',
+      rev: String(rev),
+      h: cols.h === undefined ? '' : optInt(t[cols.h]),
+      w: cols.w === undefined ? '' : optInt(t[cols.w]),
+      owned: cols.owned === undefined ? '' : optInt(t[cols.owned]),
+      cells: cols.cells === undefined ? null : parseIntStrict(t[cols.cells] ?? ''),
+    };
+  }
+
+  // 見出しがないとき: アイテム名、展示収益、縦、横、所持数の順
+  function fromPositions(t, tabbed) {
+    let i = 0;
+    let name;
+    if (tabbed) {
+      name = t[0] ?? '';
+      i = 1;
+    } else {
+      const parts = [];
+      while (i < t.length && parseNum(t[i]) === null) parts.push(t[i++]);
+      name = parts.join(' ');
+    }
+    const rev = parseNum(t[i] ?? '');
+    if (rev === null || name === '' || parseNum(name) !== null) return null;
+    return { name, rev: String(rev), h: optInt(t[i + 1]), w: optInt(t[i + 2]), owned: optInt(t[i + 3]), cells: null };
+  }
+
+  // 貼り付けたテキストを、アイテムの一覧と「読み取れなかった行数」に変換する
+  function parseBulk(text) {
+    const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+    let cols = null;
+    if (lines.length) {
+      const found = {};
+      splitLine(lines[0]).forEach((label, idx) => {
+        for (const [key, names] of Object.entries(HEADER_ALIASES)) {
+          if (names.includes(label) && found[key] === undefined) found[key] = idx;
+        }
+      });
+      if (found.name !== undefined && found.rev !== undefined) { cols = found; lines.shift(); }
+    }
+    const records = [];
+    let skipped = 0;
+    for (const raw of lines) {
+      const t = splitLine(raw);
+      const rec = cols ? fromColumns(t, cols) : fromPositions(t, raw.includes('\t'));
+      if (rec) records.push(rec); else skipped++;
+    }
+    return { records, skipped };
+  }
+
+  function applyBulk(mode) {
+    const { records, skipped } = parseBulk(el.bulk.value);
+    if (!records.length) {
+      el.bulkMsg.textContent = '取り込める行がありません。「アイテム名」「展示収益」「縦」「横」の順に並んでいるか、確認してください。';
+      return;
+    }
+    const notes = [];
+    if (mode === 'replace') {
+      const ownedByName = new Map(
+        state.items.filter((i) => i.name.trim() && i.owned.trim() !== '').map((i) => [i.name.trim(), i.owned])
+      );
+      state.items = records.map((p) => newItem(p.name, p.rev, p.h, p.w, p.owned || ownedByName.get(p.name.trim()) || ''));
+      notes.push(`${records.length}件で表を置き換えました。`);
+    } else {
+      records.forEach((p) => state.items.push(newItem(p.name, p.rev, p.h, p.w, p.owned)));
+      notes.push(`${records.length}件を表の末尾に追加しました。`);
+    }
+    if (skipped) notes.push(`${skipped}行は読み取れなかったため、取り込んでいません。`);
+    const noSize = records.filter((p) => p.h === '' || p.w === '').length;
+    if (noSize) notes.push(`${noSize}件は縦・横が読み取れなかったので、表で入力してください。`);
+    const mismatch = records.filter((p) => p.cells !== null && p.h !== '' && p.w !== '' && p.cells !== Number(p.h) * Number(p.w));
+    if (mismatch.length) notes.push(`マス数と縦×横が合わない行があります: ${mismatch.map((p) => nameOf(p.name)).join('、')}`);
+    const seen = new Set();
+    const dup = new Set();
+    for (const it of state.items) {
+      const n = it.name.trim();
+      if (!n) continue;
+      if (seen.has(n)) dup.add(n);
+      seen.add(n);
+    }
+    if (dup.size) notes.push(`同じ名前のアイテムが複数あります: ${[...dup].join('、')}。所持数の引き継ぎは名前で判別するため、名前は重ならないようにしてください。`);
+    el.bulkMsg.textContent = notes.join(' ');
+    save();
+    renderTable();
+    markStale();
+  }
+
+  el.bulk.placeholder = EXAMPLE;
+  $('#bulkExample').addEventListener('click', () => {
+    el.bulk.value = EXAMPLE;
+    el.bulkMsg.textContent = '入力例を入れました。書き換えてから、「表を置き換える」か「表の末尾に追加する」を押してください。';
+  });
+  $('#bulkReplace').addEventListener('click', () => applyBulk('replace'));
+  $('#bulkAppend').addEventListener('click', () => applyBulk('append'));
+  $('#bulkExport').addEventListener('click', () => {
+    const lines = ['アイテム名\t展示収益\t縦\t横\t所持数'];
+    for (const it of state.items) {
+      const p = parseItem(it);
+      if (p.status !== 'ok') continue;
+      lines.push([it.name.trim(), p.rev, p.h, p.w, it.owned.trim()].join('\t'));
+    }
+    el.bulk.value = lines.join('\n');
+    el.bulkMsg.textContent = '現在の表を書き出しました。コピーして保存しておくと、あとで貼り付けて復元できます。';
+  });
+
+  /* ---------- ヘッダーの画像(飾り) ---------- */
+  // 通信量を抑える設定(データセーバーなど)のときは、読み込まない。読み込めなくても、背景だけで成り立つ。
+  function loadHeroImage() {
+    if (saveData) return;
+    const pic = document.createElement('picture');
+    pic.innerHTML = `
+      <source media="(max-width: 640px)" srcset="img/hero-narrow.webp" type="image/webp">
+      <source media="(max-width: 640px)" srcset="img/hero-narrow.jpg" type="image/jpeg">
+      <source srcset="img/hero-wide.webp" type="image/webp">
+      <img src="img/hero-wide.jpg" alt="" width="1600" height="307" decoding="async">`;
+    pic.querySelector('img').addEventListener('error', () => {
+      pic.remove();
+      $('#hero').classList.remove('has-photo');
+    });
+    const hero = $('#hero');
+    hero.classList.add('has-photo');
+    hero.prepend(pic);
+  }
+
+  /* ---------- 起動 ---------- */
+  loadHeroImage();
+  checkSprite();
+  document.querySelectorAll('.js-time-limit').forEach((e) => { e.textContent = TIME_LIMIT_SEC; });
+  if ('ResizeObserver' in window) new ResizeObserver(() => sizeMarks()).observe(el.board);
+  else window.addEventListener('resize', sizeMarks);
+  el.boardCaption.textContent = '盤面のアイテムや内訳の表の行をタップ(クリック)すると、そのアイテムが強調されます。';
+  renderTable();
+  renderIdle();
+})();
+</script>
+</body>
+</html>
